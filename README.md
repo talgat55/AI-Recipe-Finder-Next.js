@@ -4,7 +4,7 @@ A recipe suggestion app that uses AI to generate recipe ideas from ingredients y
 
 ## Features
 
-- **AI-powered recipes** — Mistral AI generates recipe suggestions (name, description, ingredients, steps) from your input.
+- **Two recipe sources** — **Recipe sites** (TheMealDB, free, no key): real recipes with real photos. **AI** (Mistral): generated suggestions in your language.
 - **Multi-language UI** — English (default), Russian, Spanish, German with persisted preference.
 - **Local history** — Last successful result is restored on page load; recent searches (last 5) are stored in a file on the server and are clickable to re-run.
 - **Clear states** — Empty, loading, error, and success states with inline error messages.
@@ -37,11 +37,11 @@ npm install
 
 Create a `.env.local` file in the project root:
 
-| Variable          | Required | Description                                |
-|-------------------|----------|--------------------------------------------|
-| `MISTRAL_API_KEY` | Yes      | Your Mistral API token for recipe generation. |
+| Variable          | Required | Description                                                                 |
+|-------------------|----------|-----------------------------------------------------------------------------|
+| `MISTRAL_API_KEY` | For AI   | Mistral API token (for "AI" source). [Mistral Console](https://console.mistral.ai). |
 
-Get a token from [Mistral Console](https://console.mistral.ai) (API keys). Do not commit `.env.local`.
+"Recipe sites" uses [TheMealDB](https://www.themealdb.com/api.php) (free, no key). It filters by the first ingredient; English ingredient names usually work best. Do not commit `.env.local`.
 
 ### Run Locally
 

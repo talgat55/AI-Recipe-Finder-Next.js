@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateRecipes } from "@/services/ai";
+import { fetchRecipesFromTheMealDB } from "@/services/themealdb";
 
 /**
- * Validate POST body: we expect { ingredients: string, locale?: string }.
- * Reject empty or too-short input so we don't call AI or return meaningless results.
+ * Validate POST body: we expect { ingredients: string, locale?: string, source?: string }.
+ * Reject empty or too-short input so we don't call API or return meaningless results.
  */
 const MIN_INGREDIENTS_LENGTH = 2;
 const VALID_LOCALES = ["en", "ru", "es", "de"] as const;
+const VALID_SOURCES = ["ai", "sites"] as const;
 
-function validateBody(body: unknown): { ingredients: string; locale: "en" | "ru" | "es" | "de" } | null {
+function validateBody(body: unknown): {
+  ingredients: string;
+  locale: "en" | "ru" | "es" | "de";
+  source: "ai" | "sites";
+} | null {
   if (!body || typeof body !== "object" || !("ingredients" in body)) return null;
   const ingredients =
     typeof (body as { ingredients?: unknown }).ingredients === "string"
@@ -20,7 +26,12 @@ function validateBody(body: unknown): { ingredients: string; locale: "en" | "ru"
     typeof localeRaw === "string" && VALID_LOCALES.includes(localeRaw as typeof VALID_LOCALES[number])
       ? (localeRaw as "en" | "ru" | "es" | "de")
       : "en";
-  return { ingredients, locale };
+  const sourceRaw = (body as { source?: unknown }).source;
+  const source =
+    typeof sourceRaw === "string" && VALID_SOURCES.includes(sourceRaw as typeof VALID_SOURCES[number])
+      ? (sourceRaw as "ai" | "sites")
+      : "ai";
+  return { ingredients, locale, source };
 }
 
 /**
@@ -73,26 +84,31 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const recipes = await generateRecipes(parsed.ingredients, parsed.locale);
+    let recipes;
+    if (parsed.source === "sites") {
+      recipes = await fetchRecipesFromTheMealDB(parsed.ingredients);
+    } else {
+      recipes = await generateRecipes(parsed.ingredients, parsed.locale);
+    }
     return NextResponse.json({ recipes });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    // Don't expose internal errors or API details; map to safe user-facing messages.
-    // JSON parse / extraction failure: model returned invalid format -> 502.
     if (message.includes("Could not extract valid JSON") || message.includes("missing recipes")) {
       return NextResponse.json(
         { message: "Recipe generation failed. Please try again." },
         { status: 502 }
       );
     }
-    // Missing key or Mistral API errors: don't leak details.
-    if (message.includes("MISTRAL_API_KEY") || message.includes("Empty or invalid")) {
+    if (
+      message.includes("MISTRAL_API_KEY") ||
+      message.includes("Empty or invalid") ||
+      message.includes("TheMealDB")
+    ) {
       return NextResponse.json(
         { message: "Recipe service is temporarily unavailable." },
         { status: 503 }
       );
     }
-    // Rate limits, timeouts, network from Mistral: treat as 503.
     return NextResponse.json(
       { message: "Recipe service is temporarily unavailable. Please try again later." },
       { status: 503 }

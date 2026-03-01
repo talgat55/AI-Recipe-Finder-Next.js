@@ -4,8 +4,7 @@ import type { Recipe } from "@/types/recipe";
 import { useTranslations } from "@/lib/locale-context";
 
 /**
- * Single recipe display. Encapsulates layout for name, description, ingredients, steps
- * so RecipeList stays a thin mapper and we can change card design in one place.
+ * Single recipe display: name, description, ingredients, steps.
  */
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
   const t = useTranslations();

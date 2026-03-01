@@ -34,6 +34,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [recipeSource, setRecipeSource] = useState<"ai" | "sites">("sites");
   const [hydrated, setHydrated] = useState(false);
 
   // Restore last search from localStorage; history from file (API) or fallback to localStorage.
@@ -61,7 +62,7 @@ export default function HomePage() {
       const res = await fetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: ingredientsInput, locale }),
+        body: JSON.stringify({ ingredients: ingredientsInput, locale, source: recipeSource }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -121,6 +122,19 @@ export default function HomePage() {
               onChange={setIngredients}
               onGenerate={handleGenerate}
             />
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-600 text-sm">{t("sourceLabel")}:</span>
+              <select
+                value={recipeSource}
+                onChange={(e) => setRecipeSource(e.target.value as "ai" | "sites")}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                aria-label={t("sourceLabel")}
+              >
+                <option value="sites">{t("sourceSites")}</option>
+                <option value="ai">{t("sourceAi")}</option>
+              </select>
+            </div>
 
             {history.length > 0 && (
               <SearchHistory items={history} onSelect={handleHistorySelect} />

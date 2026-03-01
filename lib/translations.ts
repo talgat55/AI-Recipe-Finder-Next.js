@@ -12,7 +12,10 @@ export type TranslationKey =
   | "loading"
   | "recipeResults"
   | "error"
-  | "history";
+  | "history"
+  | "sourceAi"
+  | "sourceSites"
+  | "sourceLabel";
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = {
   en: {
@@ -28,6 +31,9 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     recipeResults: "Recipe results",
     error: "Error",
     history: "History",
+    sourceAi: "AI",
+    sourceSites: "Recipe sites",
+    sourceLabel: "Source",
   },
   ru: {
     tagline: "Введите, что есть — получите идеи рецептов",
@@ -42,6 +48,9 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     recipeResults: "Результаты рецептов",
     error: "Ошибка",
     history: "История",
+    sourceAi: "ИИ",
+    sourceSites: "Сайты рецептов",
+    sourceLabel: "Источник",
   },
   es: {
     tagline: "Escribe lo que tienes — obtén ideas de recetas",
@@ -56,6 +65,9 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     recipeResults: "Resultados de recetas",
     error: "Error",
     history: "Historial",
+    sourceAi: "IA",
+    sourceSites: "Sitios de recetas",
+    sourceLabel: "Fuente",
   },
   de: {
     tagline: "Gib ein, was du hast — erhalte Rezeptideen",
@@ -70,5 +82,8 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     recipeResults: "Rezept Ergebnisse",
     error: "Fehler",
     history: "Verlauf",
+    sourceAi: "KI",
+    sourceSites: "Rezeptseiten",
+    sourceLabel: "Quelle",
   },
 };

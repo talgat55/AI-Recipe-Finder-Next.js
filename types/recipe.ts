@@ -7,4 +7,6 @@ export interface Recipe {
   description: string;
   ingredients: string[];
   steps: string[];
+  /** Optional image URL; if missing, UI can assign one from a preset. */
+  imageUrl?: string;
 }
