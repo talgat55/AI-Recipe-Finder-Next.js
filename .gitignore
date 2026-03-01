@@ -32,3 +32,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# server-stored history (user data, not committed)
+/data/search-history.json

@@ -36,14 +36,20 @@ export default function HomePage() {
   const [history, setHistory] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
-  // Restore last search and history from localStorage after mount (client-only).
+  // Restore last search from localStorage; history from file (API) or fallback to localStorage.
   useEffect(() => {
     const last = readLastSearch();
     if (last?.ingredients && Array.isArray(last.recipes) && last.recipes.length > 0) {
       setIngredients(last.ingredients);
       setRecipes(last.recipes);
     }
-    setHistory(readHistory());
+    fetch("/api/history")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.history)) setHistory(data.history);
+        else setHistory(readHistory());
+      })
+      .catch(() => setHistory(readHistory()));
     setHydrated(true);
   }, []);
 
@@ -67,8 +73,19 @@ export default function HomePage() {
       setRecipes(nextRecipes);
       setIngredients(ingredientsInput);
       saveLastSearch(ingredientsInput, nextRecipes);
-      appendToHistory(ingredientsInput);
-      setHistory(readHistory());
+      const historyRes = await fetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients: ingredientsInput }),
+      });
+      if (historyRes.ok) {
+        const historyData = await historyRes.json().catch(() => ({}));
+        if (Array.isArray(historyData.history)) setHistory(historyData.history);
+        else { appendToHistory(ingredientsInput); setHistory(readHistory()); }
+      } else {
+        appendToHistory(ingredientsInput);
+        setHistory(readHistory());
+      }
     } catch {
       setRecipes([]);
       setError("Network error. Please try again.");

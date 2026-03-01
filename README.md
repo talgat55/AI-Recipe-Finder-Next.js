@@ -6,7 +6,7 @@ A recipe suggestion app that uses AI to generate recipe ideas from ingredients y
 
 - **AI-powered recipes** — Mistral AI generates recipe suggestions (name, description, ingredients, steps) from your input.
 - **Multi-language UI** — English (default), Russian, Spanish, German with persisted preference.
-- **Local history** — Last successful result is restored on page load; recent searches (last 5) are clickable to re-run.
+- **Local history** — Last successful result is restored on page load; recent searches (last 5) are stored in a file on the server and are clickable to re-run.
 - **Clear states** — Empty, loading, error, and success states with inline error messages.
 - **Rate limiting** — In-memory per-IP throttling on the API to reduce abuse.
 
@@ -16,7 +16,7 @@ A recipe suggestion app that uses AI to generate recipe ideas from ingredients y
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
 - **AI:** Mistral API (mistral-small-latest) via `@mistralai/mistralai` SDK
-- **Storage:** `localStorage` for last search and search history (client-only)
+- **Storage:** `localStorage` for last search and locale; history in `data/search-history.json` on the server (per-IP), with localStorage fallback when the file is not writable (e.g. serverless)
 
 ## Setup
 
@@ -85,3 +85,7 @@ No extra config is required for the App Router or API routes.
 ### Port already in use
 
 - If port 3000 is busy, run `npm run dev -- -p 3001` (or another port) and open the URL shown in the terminal.
+
+### History not persisting across deploys
+
+- History is stored in `data/search-history.json` on the server. On serverless (e.g. Vercel) the filesystem is often read-only or ephemeral, so the app falls back to `localStorage` for history in the browser. For persistent file-based history, run the app on a Node server with a writable disk (e.g. VPS, Docker).
