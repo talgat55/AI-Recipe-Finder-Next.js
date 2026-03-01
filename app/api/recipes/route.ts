@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Recipe } from "@/types/recipe";
+import { generateRecipes } from "@/services/ai";
 
 /**
  * Validate POST body: we expect { ingredients: string }.
- * Reject empty or too-short input so we don't call AI or return meaningless stubs.
+ * Reject empty or too-short input so we don't call AI or return meaningless results.
  */
 const MIN_INGREDIENTS_LENGTH = 2;
 
@@ -18,69 +18,25 @@ function validateBody(body: unknown): { ingredients: string } | null {
 }
 
 /**
- * Stub: deterministic recipes from ingredient keywords. Exists so the frontend
- * can integrate against a real API contract before we add OpenAI; swap this
- * for an AI call later without changing the route signature.
+ * In-memory rate limit: one request per IP per window. Limitations: only works
+ * within a single process; serverless may spin multiple instances so limits are
+ * per-instance. For production, use a shared store (Redis, Vercel KV, etc.).
  */
-function getStubRecipes(ingredientsRaw: string): Recipe[] {
-  const lower = ingredientsRaw.toLowerCase();
-  const recipes: Recipe[] = [];
+const RATE_LIMIT_MS = 15_000;
+const lastRequestByIp = new Map<string, number>();
 
-  if (lower.includes("egg") || lower.includes("eggs")) {
-    recipes.push({
-      name: "Omelette",
-      description: "Classic folded omelette. Fast and versatile.",
-      ingredients: ["eggs", "butter", "salt", "pepper"],
-      steps: [
-        "Beat eggs with a pinch of salt and pepper.",
-        "Melt butter in a non-stick pan over medium heat.",
-        "Pour in eggs, let set slightly, then fold and serve.",
-      ],
-    });
-  }
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
 
-  if (lower.includes("chicken") && (lower.includes("rice") || lower.includes("onion"))) {
-    recipes.push({
-      name: "Simple Chicken Rice Bowl",
-      description: "One-pan chicken and rice with onion. Quick and filling.",
-      ingredients: ["chicken", "rice", "onion", "oil", "salt", "pepper"],
-      steps: [
-        "Dice onion and chicken.",
-        "Sauté onion in oil until soft, then add chicken and cook through.",
-        "Add rice and water, bring to a boil, then simmer until rice is tender.",
-        "Season with salt and pepper and serve.",
-      ],
-    });
-  }
-
-  if (lower.includes("rice") && lower.includes("onion") && !recipes.some((r) => r.name.includes("Chicken"))) {
-    recipes.push({
-      name: "Onion Rice Pilaf",
-      description: "Fragrant rice with caramelized onion.",
-      ingredients: ["rice", "onion", "butter", "stock", "salt"],
-      steps: [
-        "Slice onion and cook in butter until golden.",
-        "Add rice and stir to coat.",
-        "Pour in stock, bring to a boil, cover and simmer until rice is done.",
-        "Fluff and season with salt.",
-      ],
-    });
-  }
-
-  if (recipes.length === 0) {
-    recipes.push({
-      name: "Use What You Have",
-      description: "Combine your ingredients in a pan with oil, season, and cook until done.",
-      ingredients: ["your ingredients", "oil", "salt", "pepper"],
-      steps: [
-        "Chop ingredients evenly.",
-        "Heat oil in a pan, add ingredients and season.",
-        "Cook until tender and serve.",
-      ],
-    });
-  }
-
-  return recipes;
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const last = lastRequestByIp.get(ip);
+  if (last != null && now - last < RATE_LIMIT_MS) return true;
+  lastRequestByIp.set(ip, now);
+  return false;
 }
 
 export async function POST(request: NextRequest) {
@@ -102,6 +58,38 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const recipes = getStubRecipes(parsed.ingredients);
-  return NextResponse.json({ recipes });
+  const ip = getClientIp(request);
+  if (isRateLimited(ip)) {
+    return NextResponse.json(
+      { message: "Too many requests. Please try again in a moment." },
+      { status: 429 }
+    );
+  }
+
+  try {
+    const recipes = await generateRecipes(parsed.ingredients);
+    return NextResponse.json({ recipes });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    // Don't expose internal errors or API details; map to safe user-facing messages.
+    // JSON parse / extraction failure: model returned invalid format -> 502.
+    if (message.includes("Could not extract valid JSON") || message.includes("missing recipes")) {
+      return NextResponse.json(
+        { message: "Recipe generation failed. Please try again." },
+        { status: 502 }
+      );
+    }
+    // Missing key or OpenAI API errors: don't leak details.
+    if (message.includes("OPENAI_API_KEY") || message.includes("Empty or invalid")) {
+      return NextResponse.json(
+        { message: "Recipe service is temporarily unavailable." },
+        { status: 503 }
+      );
+    }
+    // Rate limits, timeouts, network from OpenAI: treat as 503.
+    return NextResponse.json(
+      { message: "Recipe service is temporarily unavailable. Please try again later." },
+      { status: 503 }
+    );
+  }
 }
