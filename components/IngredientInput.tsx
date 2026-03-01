@@ -4,14 +4,14 @@ import { useState } from "react";
 
 /**
  * IngredientInput is a client component so we can hold local state for the
- * text value and handle submit. Kept self-contained; parent can later
- * consume ingredients via callback or context when we add the backend.
+ * text value and handle submit. Parent passes onGenerate to receive the action;
+ * we don't parse ingredients here so the page/API can own that contract.
  */
-export function IngredientInput() {
+export function IngredientInput({ onGenerate }: { onGenerate?: () => void }) {
   const [value, setValue] = useState("");
 
   const handleGenerate = () => {
-    // No backend yet — just prevent default and keep UI ready for future API call
+    onGenerate?.();
   };
 
   return (
