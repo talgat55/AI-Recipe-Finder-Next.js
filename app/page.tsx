@@ -4,6 +4,8 @@ import { useState } from "react";
 import { IngredientInput } from "@/components/IngredientInput";
 import { RecipeList } from "@/components/RecipeList";
 import { Loader } from "@/components/Loader";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslations } from "@/lib/locale-context";
 import type { Recipe } from "@/types/recipe";
 
 /** Mock recipes for "Generate" until we have a backend. */
@@ -39,6 +41,7 @@ function getMockRecipes(): Recipe[] {
  * State lives here so we can show loading + recipes when Generate is clicked.
  */
 export default function HomePage() {
+  const t = useTranslations();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -54,12 +57,15 @@ export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-start pt-12 pb-16 px-4 sm:px-6">
       <div className="w-full max-w-2xl mx-auto space-y-10">
-        <header className="text-center">
+        <header className="text-center relative">
+          <div className="absolute top-0 right-0 sm:right-4">
+            <LanguageSwitcher />
+          </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-800 tracking-tight">
             FridgeAI
           </h1>
           <p className="mt-2 text-slate-600 text-sm sm:text-base">
-            Enter what you have — get recipe ideas
+            {t("tagline")}
           </p>
         </header>
 
@@ -67,13 +73,13 @@ export default function HomePage() {
 
         <section
           className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 min-h-[200px]"
-          aria-label="Recipe results"
+          aria-label={t("recipeResults")}
         >
           {loading && <Loader />}
           {!loading && recipes.length > 0 && <RecipeList recipes={recipes} />}
           {!loading && recipes.length === 0 && (
             <p className="text-slate-500 text-center text-sm sm:text-base py-8">
-              Enter ingredients to get recipe ideas
+              {t("emptyState")}
             </p>
           )}
         </section>

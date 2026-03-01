@@ -1,10 +1,14 @@
+"use client";
+
 import type { Recipe } from "@/types/recipe";
+import { useTranslations } from "@/lib/locale-context";
 
 /**
  * Single recipe display. Encapsulates layout for name, description, ingredients, steps
  * so RecipeList stays a thin mapper and we can change card design in one place.
  */
 export function RecipeCard({ recipe }: { recipe: Recipe }) {
+  const t = useTranslations();
   const { name, description, ingredients, steps } = recipe;
   return (
     <article
@@ -16,7 +20,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
         <p className="mt-2 text-slate-600 text-sm">{description}</p>
       ) : null}
       <div className="mt-4">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">Ingredients</h4>
+        <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("ingredients")}</h4>
         <ul className="mt-1.5 list-disc list-inside text-slate-700 text-sm space-y-0.5">
           {ingredients.map((item, i) => (
             <li key={i}>{item}</li>
@@ -24,7 +28,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
         </ul>
       </div>
       <div className="mt-4">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">Steps</h4>
+        <h4 className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("steps")}</h4>
         <ol className="mt-1.5 list-decimal list-inside text-slate-700 text-sm space-y-1">
           {steps.map((step, i) => (
             <li key={i}>{step}</li>
