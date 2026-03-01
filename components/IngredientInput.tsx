@@ -5,15 +5,15 @@ import { useTranslations } from "@/lib/locale-context";
 
 /**
  * IngredientInput is a client component so we can hold local state for the
- * text value and handle submit. Parent passes onGenerate to receive the action;
- * we don't parse ingredients here so the page/API can own that contract.
+ * text value and handle submit. Parent receives current ingredients string
+ * so it can call the API with the same value.
  */
-export function IngredientInput({ onGenerate }: { onGenerate?: () => void }) {
+export function IngredientInput({ onGenerate }: { onGenerate?: (ingredients: string) => void }) {
   const t = useTranslations();
   const [value, setValue] = useState("");
 
   const handleGenerate = () => {
-    onGenerate?.();
+    onGenerate?.(value.trim());
   };
 
   return (

@@ -8,50 +8,38 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslations } from "@/lib/locale-context";
 import type { Recipe } from "@/types/recipe";
 
-/** Mock recipes for "Generate" until we have a backend. */
-function getMockRecipes(): Recipe[] {
-  return [
-    {
-      name: "Simple Chicken Rice Bowl",
-      description: "One-pan chicken and rice with onion. Quick and filling.",
-      ingredients: ["chicken", "rice", "onion", "oil", "salt", "pepper"],
-      steps: [
-        "Dice onion and chicken.",
-        "Sauté onion in oil until soft, then add chicken and cook through.",
-        "Add rice and water, bring to a boil, then simmer until rice is tender.",
-        "Season with salt and pepper and serve.",
-      ],
-    },
-    {
-      name: "Onion Rice Pilaf",
-      description: "Fragrant rice with caramelized onion.",
-      ingredients: ["rice", "onion", "butter", "stock", "salt"],
-      steps: [
-        "Slice onion and cook in butter until golden.",
-        "Add rice and stir to coat.",
-        "Pour in stock, bring to a boil, cover and simmer until rice is done.",
-        "Fluff and season with salt.",
-      ],
-    },
-  ];
-}
-
 /**
  * Homepage composes the main UI: title, ingredient input, and results area.
- * State lives here so we can show loading + recipes when Generate is clicked.
+ * On Generate we call the API and show loading or inline error.
  */
 export default function HomePage() {
   const t = useTranslations();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleGenerate = () => {
+  const handleGenerate = async (ingredients: string) => {
+    setError(null);
     setLoading(true);
-    // Simulate a short delay so Loader is visible; replace with API call later.
-    setTimeout(() => {
-      setRecipes(getMockRecipes());
+    try {
+      const res = await fetch("/api/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ingredients }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRecipes([]);
+        setError(typeof data.message === "string" ? data.message : "Something went wrong.");
+        return;
+      }
+      setRecipes(Array.isArray(data.recipes) ? data.recipes : []);
+    } catch {
+      setRecipes([]);
+      setError("Network error. Please try again.");
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (
@@ -71,13 +59,23 @@ export default function HomePage() {
 
         <IngredientInput onGenerate={handleGenerate} />
 
+        {error && (
+          <div
+            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 text-sm"
+            role="alert"
+          >
+            <span className="font-medium">{t("error")}: </span>
+            {error}
+          </div>
+        )}
+
         <section
           className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 min-h-[200px]"
           aria-label={t("recipeResults")}
         >
           {loading && <Loader />}
           {!loading && recipes.length > 0 && <RecipeList recipes={recipes} />}
-          {!loading && recipes.length === 0 && (
+          {!loading && recipes.length === 0 && !error && (
             <p className="text-slate-500 text-center text-sm sm:text-base py-8">
               {t("emptyState")}
             </p>
