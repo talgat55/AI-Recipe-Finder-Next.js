@@ -4,7 +4,7 @@ A recipe suggestion app that uses AI to generate recipe ideas from ingredients y
 
 ## Features
 
-- **AI-powered recipes** — OpenAI generates recipe suggestions (name, description, ingredients, steps) from your input.
+- **AI-powered recipes** — Mistral AI generates recipe suggestions (name, description, ingredients, steps) from your input.
 - **Multi-language UI** — English (default), Russian, Spanish, German with persisted preference.
 - **Local history** — Last successful result is restored on page load; recent searches (last 5) are clickable to re-run.
 - **Clear states** — Empty, loading, error, and success states with inline error messages.
@@ -15,7 +15,7 @@ A recipe suggestion app that uses AI to generate recipe ideas from ingredients y
 - **Framework:** Next.js 14 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
-- **AI:** OpenAI API (GPT-4o-mini) via `openai` SDK
+- **AI:** Mistral API (mistral-small-latest) via `@mistralai/mistralai` SDK
 - **Storage:** `localStorage` for last search and search history (client-only)
 
 ## Setup
@@ -37,11 +37,11 @@ npm install
 
 Create a `.env.local` file in the project root:
 
-| Variable         | Required | Description                          |
-|------------------|----------|--------------------------------------|
-| `OPENAI_API_KEY` | Yes      | Your OpenAI API key for recipe generation. |
+| Variable          | Required | Description                                |
+|-------------------|----------|--------------------------------------------|
+| `MISTRAL_API_KEY` | Yes      | Your Mistral API token for recipe generation. |
 
-Get a key from [OpenAI API keys](https://platform.openai.com/api-keys). Do not commit `.env.local`.
+Get a token from [Mistral Console](https://console.mistral.ai) (API keys). Do not commit `.env.local`.
 
 ### Run Locally
 
@@ -62,7 +62,7 @@ npm start
 
 1. Push the repo to GitHub (or connect another Git provider in Vercel).
 2. In [Vercel](https://vercel.com), **Add New Project** and import the repository.
-3. In **Settings → Environment Variables**, add `OPENAI_API_KEY` (and optionally set it for Production/Preview).
+3. In **Settings → Environment Variables**, add `MISTRAL_API_KEY` (and optionally set it for Production/Preview).
 4. Deploy. Vercel will use the built-in Next.js preset and run `next build` / `next start`.
 
 No extra config is required for the App Router or API routes.
@@ -71,8 +71,8 @@ No extra config is required for the App Router or API routes.
 
 ### "Recipe service is temporarily unavailable" or no recipes
 
-- **Missing API key:** Ensure `OPENAI_API_KEY` is set in `.env.local` (local) or in the deployment environment (e.g. Vercel). Restart the dev server after adding the key.
-- **Invalid key:** Check the key at [OpenAI API keys](https://platform.openai.com/api-keys). Revoked or incorrect keys cause 503-style responses.
+- **Missing API key:** Ensure `MISTRAL_API_KEY` is set in `.env.local` (local) or in the deployment environment (e.g. Vercel). Restart the dev server after adding the key.
+- **Invalid key:** Check the token at [Mistral Console](https://console.mistral.ai). Revoked or incorrect keys cause 503-style responses.
 
 ### "Recipe generation failed. Please try again." (502)
 

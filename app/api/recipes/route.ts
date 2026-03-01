@@ -79,14 +79,14 @@ export async function POST(request: NextRequest) {
         { status: 502 }
       );
     }
-    // Missing key or OpenAI API errors: don't leak details.
-    if (message.includes("OPENAI_API_KEY") || message.includes("Empty or invalid")) {
+    // Missing key or Mistral API errors: don't leak details.
+    if (message.includes("MISTRAL_API_KEY") || message.includes("Empty or invalid")) {
       return NextResponse.json(
         { message: "Recipe service is temporarily unavailable." },
         { status: 503 }
       );
     }
-    // Rate limits, timeouts, network from OpenAI: treat as 503.
+    // Rate limits, timeouts, network from Mistral: treat as 503.
     return NextResponse.json(
       { message: "Recipe service is temporarily unavailable. Please try again later." },
       { status: 503 }

@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { Mistral } from "@mistralai/mistralai";
 import type { Recipe } from "@/types/recipe";
 
 const RECIPE_SCHEMA = `
@@ -6,18 +6,18 @@ Each item must have: "name" (string), "description" (string), "ingredients" (arr
 Return a single JSON object with one key "recipes" whose value is an array of exactly 5 recipe objects. No markdown, no code fences.`;
 
 /**
- * Pure service: no request/response objects. Uses OPENAI_API_KEY from env so
+ * Pure service: no request/response objects. Uses MISTRAL_API_KEY from env so
  * callers (e.g. API route) own env and error handling; keeps this testable.
  */
 export async function generateRecipes(ingredients: string): Promise<Recipe[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not set");
+    throw new Error("MISTRAL_API_KEY is not set");
   }
 
-  const openai = new OpenAI({ apiKey });
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+  const mistral = new Mistral({ apiKey });
+  const result = await mistral.chat.complete({
+    model: "mistral-small-latest",
     messages: [
       {
         role: "system",
@@ -28,11 +28,12 @@ export async function generateRecipes(ingredients: string): Promise<Recipe[]> {
         content: `Suggest exactly 5 recipes using these ingredients (and common pantry items): ${ingredients}. Return a JSON object with a "recipes" key containing an array of 5 recipes. Each recipe: name, description, ingredients (string array), steps (string array).`,
       },
     ],
-    response_format: { type: "json_object" },
+    responseFormat: { type: "json_object" as const },
     temperature: 0.7,
   });
 
-  const raw = response.choices?.[0]?.message?.content;
+  const message = result.choices?.[0]?.message;
+  const raw = message?.content;
   if (!raw || typeof raw !== "string") {
     throw new Error("Empty or invalid model response");
   }
@@ -48,11 +49,9 @@ export async function generateRecipes(ingredients: string): Promise<Recipe[]> {
  */
 function parseRecipeJson(raw: string): unknown {
   const trimmed = raw.trim();
-  // Direct parse is most reliable when the model obeys response_format.
   try {
     return JSON.parse(trimmed);
   } catch {
-    // Fallback: extract JSON object containing "recipes" (handles ```json ... ``` or stray text).
     const objectMatch = trimmed.match(/\{[\s\S]*"recipes"[\s\S]*\}/);
     if (objectMatch) {
       try {
