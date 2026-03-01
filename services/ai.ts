@@ -1,31 +1,42 @@
 import { Mistral } from "@mistralai/mistralai";
 import type { Recipe } from "@/types/recipe";
+import type { Locale } from "@/types/locale";
 
 const RECIPE_SCHEMA = `
 Each item must have: "name" (string), "description" (string), "ingredients" (array of strings), "steps" (array of strings).
 Return a single JSON object with one key "recipes" whose value is an array of exactly 5 recipe objects. No markdown, no code fences.`;
 
+/** Language instruction so the model outputs recipe text in the user's UI language. */
+const LOCALE_LANGUAGE: Record<Locale, string> = {
+  en: "Write all recipe names, descriptions, ingredients, and steps in English.",
+  ru: "Пиши все названия рецептов, описания, ингредиенты и шаги только на русском языке.",
+  es: "Escribe todos los nombres de recetas, descripciones, ingredientes y pasos en español.",
+  de: "Schreibe alle Rezeptnamen, Beschreibungen, Zutaten und Schritte auf Deutsch.",
+};
+
 /**
  * Pure service: no request/response objects. Uses MISTRAL_API_KEY from env so
  * callers (e.g. API route) own env and error handling; keeps this testable.
+ * locale: user's UI language; model is instructed to output recipes in that language.
  */
-export async function generateRecipes(ingredients: string): Promise<Recipe[]> {
+export async function generateRecipes(ingredients: string, locale: Locale = "en"): Promise<Recipe[]> {
   const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) {
     throw new Error("MISTRAL_API_KEY is not set");
   }
 
+  const languageRule = LOCALE_LANGUAGE[locale] ?? LOCALE_LANGUAGE.en;
   const mistral = new Mistral({ apiKey });
   const result = await mistral.chat.complete({
     model: "mistral-small-latest",
     messages: [
       {
         role: "system",
-        content: `You are a recipe assistant. Output only valid JSON. ${RECIPE_SCHEMA}`,
+        content: `You are a recipe assistant. ${languageRule} Output only valid JSON. ${RECIPE_SCHEMA}`,
       },
       {
         role: "user",
-        content: `Suggest exactly 5 recipes using these ingredients (and common pantry items): ${ingredients}. Return a JSON object with a "recipes" key containing an array of 5 recipes. Each recipe: name, description, ingredients (string array), steps (string array).`,
+        content: `Suggest exactly 5 recipes using these ingredients (and common pantry items): ${ingredients}. Return a JSON object with a "recipes" key containing an array of 5 recipes. Each recipe: name, description, ingredients (string array), steps (string array). All text must be in the language specified in the system message.`,
       },
     ],
     responseFormat: { type: "json_object" as const },

@@ -6,7 +6,7 @@ import { RecipeList } from "@/components/RecipeList";
 import { Loader } from "@/components/Loader";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SearchHistory } from "@/components/SearchHistory";
-import { useTranslations } from "@/lib/locale-context";
+import { useTranslations, useLocale } from "@/lib/locale-context";
 import {
   readLastSearch,
   saveLastSearch,
@@ -28,6 +28,7 @@ import type { Recipe } from "@/types/recipe";
  */
 export default function HomePage() {
   const t = useTranslations();
+  const { locale } = useLocale();
   const [ingredients, setIngredients] = useState("");
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +55,7 @@ export default function HomePage() {
       const res = await fetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: ingredientsInput }),
+        body: JSON.stringify({ ingredients: ingredientsInput, locale }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

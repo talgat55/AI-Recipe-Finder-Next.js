@@ -2,19 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateRecipes } from "@/services/ai";
 
 /**
- * Validate POST body: we expect { ingredients: string }.
+ * Validate POST body: we expect { ingredients: string, locale?: string }.
  * Reject empty or too-short input so we don't call AI or return meaningless results.
  */
 const MIN_INGREDIENTS_LENGTH = 2;
+const VALID_LOCALES = ["en", "ru", "es", "de"] as const;
 
-function validateBody(body: unknown): { ingredients: string } | null {
+function validateBody(body: unknown): { ingredients: string; locale: "en" | "ru" | "es" | "de" } | null {
   if (!body || typeof body !== "object" || !("ingredients" in body)) return null;
   const ingredients =
     typeof (body as { ingredients?: unknown }).ingredients === "string"
       ? (body as { ingredients: string }).ingredients.trim()
       : "";
   if (ingredients.length < MIN_INGREDIENTS_LENGTH) return null;
-  return { ingredients };
+  const localeRaw = (body as { locale?: unknown }).locale;
+  const locale =
+    typeof localeRaw === "string" && VALID_LOCALES.includes(localeRaw as typeof VALID_LOCALES[number])
+      ? (localeRaw as "en" | "ru" | "es" | "de")
+      : "en";
+  return { ingredients, locale };
 }
 
 /**
@@ -67,7 +73,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const recipes = await generateRecipes(parsed.ingredients);
+    const recipes = await generateRecipes(parsed.ingredients, parsed.locale);
     return NextResponse.json({ recipes });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
