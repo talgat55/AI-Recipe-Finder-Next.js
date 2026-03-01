@@ -11,7 +11,8 @@ export type TranslationKey =
   | "steps"
   | "loading"
   | "recipeResults"
-  | "error";
+  | "error"
+  | "history";
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = {
   en: {
@@ -26,6 +27,7 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     loading: "Loading",
     recipeResults: "Recipe results",
     error: "Error",
+    history: "History",
   },
   ru: {
     tagline: "Введите, что есть — получите идеи рецептов",
@@ -39,6 +41,7 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     loading: "Загрузка",
     recipeResults: "Результаты рецептов",
     error: "Ошибка",
+    history: "История",
   },
   es: {
     tagline: "Escribe lo que tienes — obtén ideas de recetas",
@@ -52,6 +55,7 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     loading: "Cargando",
     recipeResults: "Resultados de recetas",
     error: "Error",
+    history: "Historial",
   },
   de: {
     tagline: "Gib ein, was du hast — erhalte Rezeptideen",
@@ -65,5 +69,6 @@ export const translations: Record<Locale, Record<TranslationKey, string>> = {
     loading: "Laden",
     recipeResults: "Rezept Ergebnisse",
     error: "Fehler",
+    history: "Verlauf",
   },
 };

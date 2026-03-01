@@ -1,19 +1,26 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "@/lib/locale-context";
 
 /**
- * IngredientInput is a client component so we can hold local state for the
- * text value and handle submit. Parent receives current ingredients string
- * so it can call the API with the same value.
+ * Controlled input: value and onChange live in parent so we can restore last
+ * search and sync with history clicks. Parent calls onGenerate with current
+ * value when Generate is clicked.
  */
-export function IngredientInput({ onGenerate }: { onGenerate?: (ingredients: string) => void }) {
+export function IngredientInput({
+  value,
+  onChange,
+  onGenerate,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onGenerate?: (ingredients: string) => void;
+}) {
   const t = useTranslations();
-  const [value, setValue] = useState("");
 
   const handleGenerate = () => {
-    onGenerate?.(value.trim());
+    const trimmed = value.trim();
+    if (trimmed) onGenerate?.(trimmed);
   };
 
   return (
@@ -24,7 +31,7 @@ export function IngredientInput({ onGenerate }: { onGenerate?: (ingredients: str
       <textarea
         id="ingredients"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={t("ingredientsPlaceholder")}
         className="w-full min-h-[100px] px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent resize-y"
         aria-describedby="ingredients-hint"

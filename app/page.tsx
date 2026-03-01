@@ -1,31 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IngredientInput } from "@/components/IngredientInput";
 import { RecipeList } from "@/components/RecipeList";
 import { Loader } from "@/components/Loader";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SearchHistory } from "@/components/SearchHistory";
 import { useTranslations } from "@/lib/locale-context";
+import {
+  readLastSearch,
+  saveLastSearch,
+  readHistory,
+  appendToHistory,
+} from "@/lib/search-history";
 import type { Recipe } from "@/types/recipe";
 
 /**
- * Homepage composes the main UI: title, ingredient input, and results area.
- * On Generate we call the API and show loading or inline error.
+ * State lives in the page so we can restore from localStorage, drive history,
+ * and keep a single place for UI state. Tradeoff: page holds more; we avoid
+ * context or separate store for this feature set.
+ *
+ * UI states (mutually exclusive in the results section):
+ * - empty: no search yet, no error
+ * - loading: request in flight
+ * - error: request failed or validation
+ * - success: we have recipes to show
  */
 export default function HomePage() {
   const t = useTranslations();
+  const [ingredients, setIngredients] = useState("");
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
-  const handleGenerate = async (ingredients: string) => {
+  // Restore last search and history from localStorage after mount (client-only).
+  useEffect(() => {
+    const last = readLastSearch();
+    if (last?.ingredients && Array.isArray(last.recipes) && last.recipes.length > 0) {
+      setIngredients(last.ingredients);
+      setRecipes(last.recipes);
+    }
+    setHistory(readHistory());
+    setHydrated(true);
+  }, []);
+
+  const handleGenerate = async (ingredientsInput: string) => {
+    if (!ingredientsInput.trim()) return;
     setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients }),
+        body: JSON.stringify({ ingredients: ingredientsInput }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -33,13 +62,23 @@ export default function HomePage() {
         setError(typeof data.message === "string" ? data.message : "Something went wrong.");
         return;
       }
-      setRecipes(Array.isArray(data.recipes) ? data.recipes : []);
+      const nextRecipes = Array.isArray(data.recipes) ? data.recipes : [];
+      setRecipes(nextRecipes);
+      setIngredients(ingredientsInput);
+      saveLastSearch(ingredientsInput, nextRecipes);
+      appendToHistory(ingredientsInput);
+      setHistory(readHistory());
     } catch {
       setRecipes([]);
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleHistorySelect = (ing: string) => {
+    setIngredients(ing);
+    handleGenerate(ing);
   };
 
   return (
@@ -57,30 +96,42 @@ export default function HomePage() {
           </p>
         </header>
 
-        <IngredientInput onGenerate={handleGenerate} />
+        {hydrated && (
+          <>
+            <IngredientInput
+              value={ingredients}
+              onChange={setIngredients}
+              onGenerate={handleGenerate}
+            />
 
-        {error && (
-          <div
-            className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 text-sm"
-            role="alert"
-          >
-            <span className="font-medium">{t("error")}: </span>
-            {error}
-          </div>
+            {history.length > 0 && (
+              <SearchHistory items={history} onSelect={handleHistorySelect} />
+            )}
+
+            {error && (
+              <div
+                className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 text-sm"
+                role="alert"
+              >
+                <span className="font-medium">{t("error")}: </span>
+                {error}
+              </div>
+            )}
+
+            <section
+              className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 min-h-[200px]"
+              aria-label={t("recipeResults")}
+            >
+              {loading && <Loader />}
+              {!loading && recipes.length > 0 && <RecipeList recipes={recipes} />}
+              {!loading && recipes.length === 0 && !error && (
+                <p className="text-slate-500 text-center text-sm sm:text-base py-8">
+                  {t("emptyState")}
+                </p>
+              )}
+            </section>
+          </>
         )}
-
-        <section
-          className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 min-h-[200px]"
-          aria-label={t("recipeResults")}
-        >
-          {loading && <Loader />}
-          {!loading && recipes.length > 0 && <RecipeList recipes={recipes} />}
-          {!loading && recipes.length === 0 && !error && (
-            <p className="text-slate-500 text-center text-sm sm:text-base py-8">
-              {t("emptyState")}
-            </p>
-          )}
-        </section>
       </div>
     </main>
   );
